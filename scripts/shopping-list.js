@@ -65,12 +65,20 @@ const shoppingList = (function(){
     $('#js-shopping-list-form').submit(function (event) {
       event.preventDefault();
       const newItemName = $('.js-shopping-list-entry').val();
+      let error;
       api.createItem(newItemName)
-        .then(res => res.json())
         .then(res => {
-          if(res.id){
-            store.addItem(res);
+          if(!res.ok) {
+            error = {code: res.status};
           }
+          return res.json();
+        })
+        .then(res => {
+          if(error){
+            error.message = res.message;
+            return Promise.reject(error);
+          }
+          store.addItem(res);
           render();
         })
         .catch(e => console.log(e.message));
@@ -88,10 +96,24 @@ const shoppingList = (function(){
     $('.js-shopping-list').on('click', '.js-item-toggle', event => {
       const id = getItemIdFromElement(event.currentTarget);
       let item = store.findById(id);
+      let error;
       api.updateItem(id, {checked: !item.checked})
-        .then(() => {
+        .then(res => {
+          if(!res.ok){
+            error = {code: res.status};
+          }
+          return res.json();
+        })
+        .then(res => {
+          if(error){
+            error.message = res.message;
+            return Promise.reject(error);
+          }
           store.findAndUpdate(id, {checked: !item.checked});
           render();
+        })
+        .catch((e) => {
+          console.log(e.message);
         });
       // store.findAndToggleChecked(id);
     });
@@ -102,26 +124,49 @@ const shoppingList = (function(){
     $('.js-shopping-list').on('click', '.js-item-delete', event => {
       // get the index of the item in store.items
       const id = getItemIdFromElement(event.currentTarget);
+      let error;
       // delete the item
-      store.findAndDelete(id);
-      // render the updated shopping list
-      render();
+      api.deleteItem(id)
+        .then(res => {
+          if(!res.ok){
+            error = {code: res.status};
+          }
+          return res.json();
+        })
+        .then(res => {
+          if(error) {
+            error.message = res.message;
+            return Promise.reject(error);
+          }
+          store.findAndDelete(id);
+          render();
+        })
+        .catch(e=>console.log(e.message));
     });
   }
   
   function handleEditShoppingItemSubmit() {
     $('.js-shopping-list').on('submit', '.js-edit-item', event => {
       event.preventDefault();
+      let error;
       const id = getItemIdFromElement(event.currentTarget);
       const itemName = $(event.currentTarget).find('.shopping-item').val();
       api.updateItem(id, {name: itemName})
         .then(res => {
+          if(!res.ok){
+            error = {code: res.status};
+          }
           res.json();
         })
         .then(res => {
+          if(error){
+            error.message = res.message;
+            return Promise.reject(error);
+          }
           store.findAndUpdate(id, {name: itemName});
           render();
-        });
+        })
+        .catch(e => console.log(e.message));
     });
   }
   
