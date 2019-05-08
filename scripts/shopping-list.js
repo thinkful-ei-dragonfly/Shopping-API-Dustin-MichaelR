@@ -51,7 +51,15 @@ const shoppingList = (function(){
     if (store.searchTerm) {
       items = items.filter(item => item.name.includes(store.searchTerm));
     }
-  
+    
+
+
+    if (store.error !== '') {
+      console.log('rendering error');
+      console.log('store.error: ' + store.error);
+      $('.error-field').html(store.error).removeClass('hidden');
+    }
+
     // render the shopping list in the DOM
     console.log('`render` ran');
     const shoppingListItemsString = generateShoppingItemsString(items);
@@ -79,9 +87,12 @@ const shoppingList = (function(){
             return Promise.reject(error);
           }
           store.addItem(res);
-          render();
+          resetErrorAndRender();
         })
-        .catch(e => console.log(e.message));
+        .catch(e => {
+          store.setError(e.message);
+          render();
+        });
       $('.js-shopping-list-entry').val('');
     });
   }
@@ -110,10 +121,11 @@ const shoppingList = (function(){
             return Promise.reject(error);
           }
           store.findAndUpdate(id, {checked: !item.checked});
-          render();
+          resetErrorAndRender();
         })
         .catch((e) => {
-          console.log(e.message);
+          store.setError(e.message);
+          render();
         });
       // store.findAndToggleChecked(id);
     });
@@ -139,9 +151,12 @@ const shoppingList = (function(){
             return Promise.reject(error);
           }
           store.findAndDelete(id);
-          render();
+          resetErrorAndRender();
         })
-        .catch(e=>console.log(e.message));
+        .catch(e=>{
+          store.setError(e.message);
+          render();
+        });
     });
   }
   
@@ -150,6 +165,7 @@ const shoppingList = (function(){
       event.preventDefault();
       let error;
       const id = getItemIdFromElement(event.currentTarget);
+      store.setItemIsEditing(id, false);
       const itemName = $(event.currentTarget).find('.shopping-item').val();
       api.updateItem(id, {name: itemName})
         .then(res => {
@@ -164,9 +180,12 @@ const shoppingList = (function(){
             return Promise.reject(error);
           }
           store.findAndUpdate(id, {name: itemName});
-          render();
+          resetErrorAndRender();
         })
-        .catch(e => console.log(e.message));
+        .catch(e => {
+          store.setError(e.message);
+          render();
+        });
     });
   }
   
@@ -191,6 +210,12 @@ const shoppingList = (function(){
       store.setItemIsEditing(id, true);
       render();
     });
+  }
+
+  function resetErrorAndRender() {
+    store.setError('');
+    $('.error-field').addClass('hidden');
+    render();
   }
   
   function bindEventListeners() {
